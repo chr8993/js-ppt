@@ -83,8 +83,10 @@ var pptgen = function(opts) {
           var image = images[t];
           if(image['$']) {
             var opts = image['$'];
-            var src = opts.src;
-            el.image(slide, src, opts);
+            if(!opts.after) {
+              var src = opts.src;
+              el.image(slide, src, opts);
+            }
           }
         }
       }
@@ -99,6 +101,19 @@ var pptgen = function(opts) {
           }
           else {
             el.text(slide, text)
+          }
+        }
+      }
+      if(data[0].image) {
+        var images = data[0].image;
+        for(var t = 0; t < images.length; t++) {
+          var image = images[t];
+          if(image['$']) {
+            var opts = image['$'];
+            if(opts.after) {
+              var src = opts.src;
+              el.image(slide, src, opts);
+            }
           }
         }
       }
