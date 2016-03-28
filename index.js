@@ -77,6 +77,17 @@ var pptgen = function(opts) {
     },
     render: function(slide, data) {
       var el = this;
+      if(data[0].image) {
+        var images = data[0].image;
+        for(var t = 0; t < images.length; t++) {
+          var image = images[t];
+          if(image['$']) {
+            var opts = image['$'];
+            var src = opts.src;
+            el.image(slide, src, opts);
+          }
+        }
+      }
       if(data[0].text) {
         var texts = data[0].text;
         for(var t = 0; t < texts.length; t++) {
@@ -88,17 +99,6 @@ var pptgen = function(opts) {
           }
           else {
             el.text(slide, text)
-          }
-        }
-      }
-      if(data[0].image) {
-        var images = data[0].image;
-        for(var t = 0; t < images.length; t++) {
-          var image = images[t];
-          if(image['$']) {
-            var opts = image['$'];
-            var src = opts.src;
-            el.image(slide, src, opts);
           }
         }
       }
