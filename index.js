@@ -1,23 +1,37 @@
-var office  = require('officegen');
-var fs      = require('fs');
-var http    = require('http');
-var xml2js  = require('xml2js');
-var parse   = new xml2js.Parser();
+var office      = require('officegen');
+var fs          = require('fs');
+var xml2js      = require('xml2js');
+var parse       = new xml2js.Parser();
+var Handlebars  = require('handlebars');
 
-var pptgen = function() {
-  var pptx = office("pptx");
+var pptgen = function(opts) {
+  var args = arguments;
+  var bindData = (opts.data) ? opts.data: {};
+  var contentTemplate = (opts.template) ? opts.template: "";
+  var headerTemplate = (opts.header) ? opts.header: "";
+  var footerTemplate = (opts.footer) ? opts.footer: "";
+  var set = {
+    type: "pptx"
+  };
+  var pptx = office(set);
   return {
     header: function(slide) {
-        var el = this;
-        var tmp = "header.pml";
-        var data = el.readTemp(tmp);
-        // el.render(slide, [{"text": data}]);
+        if(headerTemplate) {
+          var el = this;
+          var tmp = headerTemplate;
+          var data = el.readTemp(tmp);
+          var cnt = [data.content];
+          el.render(slide, cnt);
+        }
     },
-    footer: function() {
-       var el = this;
-       var tmp = "footer.pml";
-       var data = el.readTemp(tmp);
-       // call render
+    footer: function(slide) {
+        if(footerTemplate) {
+          var el = this;
+          var tmp = "footer.pml";
+          var data = el.readTemp(tmp);
+          var cnt = [data.content];
+          el.render(slide, cnt);
+        }
     },
     slide: function() {
         var slide = pptx.makeNewSlide();
@@ -35,10 +49,15 @@ var pptgen = function() {
         slide.addText(text, opts);
         return slide;
     },
-    readTemp: function(file) {
-      var templates = __dirname + "/templates/";
-      var f = fs.readFileSync(templates + file);
+    readTemp: function(filepath) {
+      var f = String(fs.readFileSync(filepath));
       var result;
+      if(bindData) {
+        var a = bindData;
+        var tmp = Handlebars.compile(f);
+        var compiled = tmp(a);
+        f = compiled;
+      }
       parse.parseString(f,
         function(err, r) {
           result = r;
@@ -51,17 +70,13 @@ var pptgen = function() {
       for(var i = 0; i < s.length; i++) {
         var slide = s[i];
         var tmpSlide = el.slide();
-        //check header
-        // el.header(tmpSlide);
-        //render content
+        el.header(tmpSlide);
         el.render(tmpSlide, slide.content);
-        //check footer
+        el.footer(tmpSlide);
       }
     },
     render: function(slide, data) {
       var el = this;
-      //will check for content
-      // console.log(data[0]);
       if(data[0].text) {
         var texts = data[0].text;
         for(var t = 0; t < texts.length; t++) {
@@ -93,13 +108,13 @@ var pptgen = function() {
     },
     presentation: function() {
       var el = this;
-      var tmp = "template.pml";
-      var opts;
-      var data = el.readTemp(tmp);
-      var p = data.presentation;
-      var opts = p.options[0];
-      if(opts.title) {
-        var title = opts.title[0];
+      var tmp = contentTemplate;
+      if(!tmp) return;
+      var pres = el.readTemp(tmp);
+      var p = pres.presentation;
+      var options = p.options[0];
+      if(options.title) {
+        var title = options.title[0];
         pptx.setDocTitle(title);
       }
       if(p.slides) {
@@ -109,22 +124,9 @@ var pptgen = function() {
     generate: function(res) {
       var el = this;
       el.presentation();
-      return (res) ? pptx.generate(res) : true;
+      pptx.generate(res);
     }
   };
 };
 
-
-
-http.createServer(function(req, res) {
-  var ct = "application/vnd.openxmlformats";
-  ct += "-officedocument.presentationml.presentation";
-  res.writeHead(200, {
-    'Content-Type': ct,
-    'Content-disposition': "attachment; filename=surprise.pptx"
-  });
-  var powerpoint = new pptgen();
-  powerpoint.generate(res);
-}).listen(8000);
-
-console.log("Local server listening on port: 8000");
+module.exports = pptgen;
