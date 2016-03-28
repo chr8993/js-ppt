@@ -1,6 +1,6 @@
 {
   "name": "js-ppt",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A powerpoint generator from basic xml with template engine.",
   "main": "index.js",
   "scripts": {
